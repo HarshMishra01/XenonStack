@@ -1,0 +1,123 @@
+#!/bin/bash
+
+# Functions to retrieve system information
+get_cpu_info() {
+    echo "-------- CPU Information --------"
+    lscpu
+    echo "--------------------------------"
+}
+
+get_memory_info() {
+    echo "-------- Memory Information --------"
+    free
+    echo "-----------------------------------"
+}
+
+# Function to manage users
+create_new_user() {
+    local username="$1"
+    if [ -z "$username" ]; then
+        echo "Error: Username not provided."
+    else
+        echo "-------- Creating User '$username' --------"
+        sudo adduser "$username"
+        echo "-------------------------------------"
+    fi
+}
+
+list_regular_users() {
+    echo "-------- Regular Users --------"
+    cut -d: -f1 /etc/passwd
+    echo "-------------------------------"
+}
+
+list_sudo_users() {
+    echo "-------- Users with Sudo Permissions --------"
+    grep -Po '^sudo.+:\K.*$' /etc/group | tr ',' '\n'
+    echo "--------------------------------------------"
+}
+
+# Function to retrieve file information
+get_file_info() {
+    local option="$2"
+    local file="$3"
+    case "$option" in
+        "--size" | "-s")
+            echo "-------- File Size of '$file' --------"
+            stat -c '%s' "$file"
+            echo "-------------------------------------"
+            ;;
+        "--permissions" | "-p")
+            echo "-------- Permissions of '$file' --------"
+            stat -c '%A' "$file"
+            echo "---------------------------------------"
+            ;;
+        "--owner" | "-o")
+            echo "-------- Owner of '$file' --------"
+            stat -c '%U' "$file"
+            echo "----------------------------------"
+            ;;
+        "--last-modified" | "-m")
+            echo "-------- Last Modified Time of '$file' --------"
+            stat -c '%y' "$file"
+            echo "--------------------------------------------"
+            ;;
+        *)
+            echo "Invalid option. Usage: internsctl file getinfo [options] <file-name>"
+            ;;
+    esac
+}
+
+# Handling operations based on arguments
+case "$1" in
+    "cpu" )
+        case "$2" in
+            "getinfo" )
+                get_cpu_info
+                ;;
+            * )
+                echo "Invalid usage. Use 'internsctl cpu getinfo'"
+                ;;
+        esac
+        ;;
+    "memory" )
+        case "$2" in
+            "getinfo" )
+                get_memory_info
+                ;;
+            * )
+                echo "Invalid usage. Use 'internsctl memory getinfo'"
+                ;;
+        esac
+        ;;
+    "user" )
+        case "$2" in
+            "create" )
+                create_new_user "$3"
+                ;;
+            "list" )
+                if [ "$3" == "--sudo-only" ]; then
+                    list_sudo_users
+                else
+                    list_regular_users
+                fi
+                ;;
+            * )
+                echo "Invalid usage. Use 'internsctl user create <username>', 'internsctl user list', or 'internsctl user list --sudo-only'"
+                ;;
+        esac
+        ;;
+    "file" )
+        case "$2" in
+            "getinfo" )
+                get_file_info "$3" "$4"
+                ;;
+            * )
+                echo "Invalid usage. Use 'internsctl file getinfo [options] <file-name>'"
+                ;;
+        esac
+        ;;
+    * )
+        echo "Invalid command."
+        ;;
+esac
